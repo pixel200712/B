@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Suministros</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin:0; padding:0; font-family: 'Roboto', sans-serif;
+    transition: background 0.5s, color 0.5s;
+  }
+
+  /* ---- Temas ---- */
+  body.claro { background:#f9f9f9; color:#111; }
+  body.oscuro { background:#121212; color:#f0f0f0; }
+  body.neon { background:#000; color:#39ff14; text-shadow:0 0 5px #39ff14,0 0 10px #39ff14; }
+  body.gradiente { background: linear-gradient(120deg,#ff8c00,#ff0080); color:#fff; }
+
+  /* ---- Contenedor ---- */
+  .container {
+    max-width:500px; margin:70px auto 50px; padding:20px;
+    border-radius:12px; box-shadow:0 0 20px rgba(0,0,0,0.3);
+    background: rgba(255,255,255,0.05);
+  }
+
+  h1 { text-align:center; margin-bottom:20px; }
+
+  /* Formularios */
+  form { display:flex; flex-direction:column; gap:15px; }
+  input, select {
+    padding:10px; border-radius:8px; border:none; outline:none; font-size:1rem;
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+  input:focus, select:focus {
+    transform: scale(1.02);
+    box-shadow:0 0 8px #007bff;
+  }
+
+  /* Inputs adaptados a temas */
+  body.claro input, body.claro select { background:#fff; color:#111; }
+  body.oscuro input, body.oscuro select { background:#333; color:#fff; }
+  body.neon input, body.neon select { background:#111; color:#39ff14; border:1px solid #39ff14; box-shadow:0 0 5px #39ff14 inset; }
+  body.gradiente input { background: rgba(255, 255, 255, 0.171); color:#ffffff; }
+  body.gradiente select {
+    background: rgba(255,255,255,0.2); /* semitransparente para ver el gradiente */
+    color: #fff;                        /* letras blancas */
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 5px;
+    padding: 5px 10px;
+  }
+  body.gradiente select option {
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+  }
+
+  /* Botones */
+  button {
+    padding:12px; border:none; border-radius:8px; cursor:pointer;
+    font-size:1rem; font-weight:bold; transition:0.3s;
+  }
+  body.claro button { background:#007bff; color:#fff; }
+  body.oscuro button { background:#444; color:#fff; }
+  body.neon button { background:#000; color:#39ff14; border:1px solid #39ff14; text-shadow:0 0 5px #39ff14; box-shadow:0 0 10px #39ff14; }
+  body.neon button:hover { box-shadow:0 0 20px #39ff14,0 0 40px #39ff14; }
+  body.gradiente button { background:#fff;color:#ff0080;font-weight:700; }
+
+  button:hover { transform: scale(1.05); }
+
+  /* ---- Menú ---- */
+  .menu-btn {
+    position:fixed; top:15px; left:15px; font-size:28px; cursor:pointer; z-index:1001;
+  }
+  .menu {
+    position:fixed; top:0; left:-300px; width:250px; height:100%;
+    padding:20px; transition:left 0.3s; z-index:1000;
+    border-right:1px solid rgba(255,255,255,0.1);
+  }
+  .menu a, .menu button { display:block; margin:15px 0; background:none; border:none; color:inherit; font-size:1rem; cursor:pointer; text-align:left; }
+  .menu a:hover, .menu button:hover { text-decoration:underline; }
+  .menu.open { left:0; }
+
+  /* Adaptación menú por tema */
+  body.claro .menu { background:#fff; color:#111; }
+  body.oscuro .menu { background:#222; color:#fff; }
+  body.neon .menu { background:#000; color:#39ff14; }
+  body.gradiente .menu { background: rgba(0,0,0,0.5); color:#fff; }
+
+  /* ---- Vistas ---- */
+  .vista { display:none; }
+  .vista.activa { display:block; animation:fadeIn 0.4s; }
+
+  @keyframes fadeIn { from {opacity:0; transform:translateY(10px);} to {opacity:1; transform:translateY(0);} }
+
+  /* ---- Historial ---- */
+  #busqueda { width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:none; }
+
+  .card {
+    background: rgba(255,255,255,0.1); border-radius:10px; padding:15px; margin:10px 0;
+    box-shadow:0 2px 6px rgba(0,0,0,0.2); transition: transform 0.2s;
+    position: relative;
+  }
+  .card:hover { transform: scale(1.03); }
+  .card button { position:absolute; top:10px; right:10px; background:red; color:#fff; padding:4px 6px; border-radius:4px; font-size:0.8rem; }
+
+  /* ---- Toast ---- */
+  .toast {
+    position:fixed; bottom:20px; right:20px; background:#333; color:#fff; padding:12px 20px; border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.4); opacity:0; transform:translateY(20px); transition:0.4s;
+    z-index:2000;
+  }
+  .toast.show { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body class="claro">
+
+<!-- Botón del menú -->
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+
+<!-- Menú lateral -->
+<div class="menu" id="menu">
+  <h3>Menú</h3>
+  <a href="#" onclick="mostrarVista('registro')">📋 Registro</a>
+  <a href="#" onclick="mostrarVista('historial')">📑 Historial</a>
+  <button onclick="cambiarTema()" id="botonTema">☀️ Cambiar tema</button>
+</div>
+
+<div class="container">
+  <!-- ===== VISTA REGISTRO ===== -->
+<div id="vista-registro" class="vista activa">
+  <h1>Registro de Suministros</h1>
+  <form id="formSuministros">
+    <input type="text" id="nombrePersona" placeholder="Nombre de quien se lo lleva" required>
+    
+    <select id="suministroSelect" required>
+      <option value="">-- Selecciona suministro --</option>
+      <!-- Opciones se llenan dinámicamente desde inventario -->
+    </select>
+    
+    <input type="number" id="cantidad" placeholder="Cantidad" min="1" required>
+    <button type="submit">Registrar</button>
+  </form>
+
+  <h3>Agregar nuevo suministro</h3>
+  <div class="nuevo-suministro">
+    <input type="text" id="nuevoSuministro" placeholder="Nuevo suministro">
+    <button type="button" onclick="agregarSuministro()">Agregar</button>
+  </div>
+</div>
+
+<!-- ===== VISTA HISTORIAL ===== -->
+<div id="vista-historial" class="vista">
+  <h1>Historial de Movimientos</h1>
+  <input type="text" id="busqueda" placeholder="🔍 Buscar por nombre o suministro...">
+  <p id="contador">Movimientos: 0</p>
+  <button onclick="limpiarHistorial()" style="background:#e74c3c; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">
+    🗑 Limpiar historial
+  </button>
+  
+  <div id="resultado" class="resultado-lista"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== CONFIGURACIÓN JSONBIN =====
+  const BIN_ID = "68e5b7b6ae596e708f09e533";
+  const API_KEY = "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy";
+  const URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+  // ===== TEMAS =====
+  let temas = ["claro", "oscuro", "neon", "gradiente"];
+  let indice = 0;
+  const botonTema = document.getElementById("botonTema");
+
+  // Cargar tema guardado
+  const temaGuardado = localStorage.getItem("tema");
+  if (temaGuardado) document.body.className = temaGuardado;
+
+  function toggleMenu() {
+    document.getElementById("menu").classList.toggle("open");
+  }
+
+  function cambiarTema() {
+    indice = (indice + 1) % temas.length;
+    const temaActual = temas[indice];
+    document.body.className = temaActual;
+    localStorage.setItem("tema", temaActual);
+    botonTema.textContent = "🎨 Cambiar tema";
+  }
+
+  // ===== HISTORIAL =====
+  let historial = [];
+
+  async function cargarHistorial() {
+    try {
+      const res = await fetch(`${URL}/latest`, {
+        headers: { "X-Master-Key": API_KEY },
+      });
+      const data = await res.json();
+      historial = data.record || [];
+      localStorage.setItem("historial", JSON.stringify(historial));
+      mostrarHistorial();
+      console.log("✅ Datos cargados del servidor");
+    } catch (err) {
+      console.warn("⚠️ No se pudo conectar al servidor, usando localStorage");
+      historial = JSON.parse(localStorage.getItem("historial")) || [];
+      mostrarHistorial();
+    }
+  }
+
+  async function guardarHistorial() {
+    try {
+      const res = await fetch(URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": API_KEY,
+          "X-Bin-Private": false
+        },
+        body: JSON.stringify(historial),
+      });
+      if (!res.ok) throw new Error("Error al guardar");
+      console.log("✅ Datos guardados en JSONBin");
+    } catch (err) {
+      console.error("❌ Error al guardar en JSONBin:", err);
+      mostrarToast("⚠️ No se pudo guardar en línea, se guardó localmente");
+    }
+  }
+
+  // ===== INTERFAZ =====
+  const form = document.getElementById("formSuministros");
+  const resultado = document.getElementById("resultado");
+  const busqueda = document.getElementById("busqueda");
+  const contador = document.getElementById("contador");
+
+  function mostrarToast(msg) {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 2000);
+  }
+
+  function mostrarVista(vista) {
+    document.querySelectorAll(".vista").forEach(v => v.classList.remove("activa"));
+    document.getElementById(`vista-${vista}`).classList.add("activa");
+    toggleMenu();
+    if (vista === "historial") mostrarHistorial();
+  }
+
+  // Registrar suministro
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const nombre = document.getElementById("nombrePersona").value.trim();
+    const suministro = document.getElementById("suministroSelect").value;
+    const cantidad = document.getElementById("cantidad").value;
+
+    if (!nombre || !suministro || cantidad <= 0)
+      return mostrarToast("⚠️ Completa todos los campos");
+
+    const registro = {
+      nombre,
+      suministro,
+      cantidad,
+      fecha: new Date().toLocaleString(),
+    };
+    historial.push(registro);
+
+    localStorage.setItem("historial", JSON.stringify(historial));
+    await guardarHistorial();
+    form.reset();
+    mostrarToast("✅ Registro guardado en línea");
+    mostrarHistorial();
+  });
+
+  function mostrarHistorial(filtro = "") {
+    resultado.innerHTML = "";
+    let filtrados = historial.filter(
+      (r) =>
+        r.nombre.toLowerCase().includes(filtro.toLowerCase()) ||
+        r.suministro.toLowerCase().includes(filtro.toLowerCase())
+    );
+    contador.textContent = `Movimientos: ${filtrados.length}`;
+    filtrados.forEach((r, i) => {
+      resultado.innerHTML += `
+        <div class="card">
+          <strong>👤 ${r.nombre}</strong>
+          <p>📦 ${r.cantidad} de ${r.suministro}</p>
+          <small>🕒 ${r.fecha}</small>
+          <button onclick="eliminarRegistro(${i})">❌</button>
+        </div>`;
+    });
+  }
+
+  busqueda.addEventListener("input", (e) => mostrarHistorial(e.target.value));
+
+  function agregarSuministro() {
+    const nuevo = document.getElementById("nuevoSuministro").value.trim();
+    if (nuevo !== "") {
+      const select = document.getElementById("suministroSelect");
+      const option = document.createElement("option");
+      option.value = nuevo.toLowerCase();
+      option.textContent = nuevo;
+      select.appendChild(option);
+      document.getElementById("nuevoSuministro").value = "";
+      mostrarToast(`Suministro "${nuevo}" agregado ✅`);
+    }
+  }
+
+  async function eliminarRegistro(index) {
+    historial.splice(index, 1);
+    localStorage.setItem("historial", JSON.stringify(historial));
+    await guardarHistorial();
+    mostrarHistorial(busqueda.value);
+    mostrarToast("🗑 Registro eliminado del servidor");
+  }
+
+  async function limpiarHistorial() {
+    if (confirm("¿Deseas borrar todo el historial?")) {
+      historial = [];
+      localStorage.setItem("historial", JSON.stringify(historial));
+      await guardarHistorial();
+      mostrarHistorial();
+      mostrarToast("🗑 Historial limpio");
+    }
+  }
+
+  // ===== INICIO =====
+  document.addEventListener("DOMContentLoaded", cargarHistorial);
+</script>
+
+<script>
+  // ===== CONFIGURACIÓN JSONBIN PARA INVENTARIO =====
+  const INVENTARIO_BIN_ID = "68e5c137d0ea881f409923a5";
+  const INVENTARIO_API_KEY = "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy";
+  const INVENTARIO_URL = `https://api.jsonbin.io/v3/b/${INVENTARIO_BIN_ID}`;
+
+  let inventario = [];
+  const suministroSelect = document.getElementById("suministroSelect");
+
+  // ===== CARGAR INVENTARIO =====
+  async function cargarInventario() {
+    try {
+      const res = await fetch(`${INVENTARIO_URL}/latest`, {
+        headers: { "X-Master-Key": INVENTARIO_API_KEY },
+      });
+      const data = await res.json();
+      inventario = data.record || [];
+      localStorage.setItem("inventario", JSON.stringify(inventario));
+      actualizarSelectInventario();
+      console.log("✅ Inventario cargado del servidor");
+    } catch (err) {
+      console.warn("⚠️ No se pudo conectar al servidor, usando localStorage");
+      inventario = JSON.parse(localStorage.getItem("inventario")) || [];
+      actualizarSelectInventario();
+    }
+  }
+
+  // ===== GUARDAR INVENTARIO =====
+  async function guardarInventario() {
+    try {
+      await fetch(INVENTARIO_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": INVENTARIO_API_KEY,
+          "X-Bin-Private": false
+        },
+        body: JSON.stringify(inventario),
+      });
+      console.log("✅ Inventario guardado en JSONBin");
+    } catch (err) {
+      console.error("❌ Error al guardar inventario:", err);
+      mostrarToast("⚠️ No se pudo guardar en línea, se guardó localmente");
+    }
+  }
+
+  // ===== ACTUALIZAR SELECT CON INVENTARIO =====
+  function actualizarSelectInventario() {
+    suministroSelect.innerHTML = `<option value="">-- Selecciona suministro --</option>`;
+    inventario.forEach(s => {
+      const option = document.createElement("option");
+      option.value = s.nombre.toLowerCase();
+      option.textContent = s.nombre;
+      suministroSelect.appendChild(option);
+    });
+  }
+
+  // ===== AGREGAR NUEVO SUMINISTRO =====
+  function agregarSuministro() {
+    const nuevo = document.getElementById("nuevoSuministro").value.trim();
+    if (nuevo !== "") {
+      inventario.push({ nombre: nuevo, fecha: new Date().toLocaleString() });
+      localStorage.setItem("inventario", JSON.stringify(inventario));
+      guardarInventario();
+      actualizarSelectInventario();
+      document.getElementById("nuevoSuministro").value = "";
+      mostrarToast(`Suministro "${nuevo}" agregado ✅`);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", cargarInventario);
+</script>
+
+</body>
+</html>
