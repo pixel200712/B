@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Historial</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+/* Contenedor scrollable para móviles */
+#contenedorHistorial {
+  width: 100%;
+  overflow-x: auto; /* permite scroll horizontal */
+  -webkit-overflow-scrolling: touch; /* suaviza scroll en iOS */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+/* Tabla adaptativa */
+#contenedorHistorial table {
+  width: 100%; /* que la tabla ocupe todo el contenedor */
+  border-collapse: collapse;
+  min-width: 600px; /* opcional: evita que columnas se achiquen demasiado */
+}
+
+/* Estilos generales de la tabla */
+#contenedorHistorial th, #contenedorHistorial td {
+  padding: 6px 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  white-space: nowrap; /* evita que el contenido rompa la celda */
+}
+
+</style>
+
+<h2>📜 Historial completo de recojes</h2>
+
+<label for="mesFiltro">Selecciona mes:</label>
+<select id="mesFiltro">
+  <option value="todos">Todos</option>
+</select><br><br>
+
+<label for="diaFiltro">Selecciona día:</label>
+<input type="date" id="diaFiltro"><br><br>
+
+<button id="btnDescargarHistorial">📤 Descargar historial</button><br><br>
+
+<div id="contenedorHistorial"><p>Cargando registros...</p></div>
+
+<script>
+// ===== CONFIG =====
+const CONFIG = {
+  RECOGE: {
+    BIN_ID: "68f0782143b1c97be96a8e31",
+    API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy"
+  }
+};
+const URL_RECOGE = `https://api.jsonbin.io/v3/b/${CONFIG.RECOGE.BIN_ID}`;
+
+// ===== Temas =====
+const temas = ["claro","oscuro","gradiente"];
+let indiceTema = temas.indexOf(localStorage.getItem("tema")) >= 0 ? temas.indexOf(localStorage.getItem("tema")) : 0;
+const botonTema = document.getElementById("botonTema");
+
+function aplicarTema(tema){
+    document.body.className = "";
+    document.body.classList.add(tema);
+    localStorage.setItem("tema", tema);
+    if(botonTema){
+        let emoji = tema==="claro"?"☀️":tema==="oscuro"?"🌙":"🎨";
+        botonTema.textContent = `${emoji} Cambiar tema`;
+    }
+}
+function cambiarTema(){ indiceTema=(indiceTema+1)%temas.length; aplicarTema(temas[indiceTema]); }
+if(botonTema) botonTema.addEventListener("click", cambiarTema);
+aplicarTema(temas[indiceTema]);
+
+// 🔹 Fecha actual
+function fechaActual() {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth()+1).padStart(2,"0");
+    const dd = String(hoy.getDate()).padStart(2,"0");
+    return { año: yyyy, mes: mm, dia: dd, hoyStr: `${yyyy}-${mm}-${dd}` };
+}
+
+// 🔹 Inicializar filtros con fecha actual
+function inicializarFiltros() {
+    const { año, mes, dia, hoyStr } = fechaActual();
+
+    // Input día
+    const diaInput = document.getElementById("diaFiltro");
+    if(diaInput) diaInput.value = hoyStr;
+
+    // Select mes
+    const mesSelect = document.getElementById("mesFiltro");
+    if(mesSelect){
+        mesSelect.innerHTML = `<option value="todos">Todos</option>`;
+        for(let i=1;i<=12;i++){
+            const m = String(i).padStart(2,"0");
+            const opcion = document.createElement("option");
+            opcion.value = `${año}-${m}`;
+            opcion.textContent = `${m}-${año}`;
+            if(m===mes) opcion.selected = true;
+            mesSelect.appendChild(opcion);
+        }
+    }
+}
+
+// 🔹 Obtener registros
+async function obtenerRecojes(){
+    try{
+        const res = await fetch(URL_RECOGE+"/latest",{headers:{"X-Master-Key":CONFIG.RECOGE.API_KEY}});
+        const json = await res.json();
+        return Array.isArray(json.record)?json.record:[];
+    }catch(err){ console.error(err); alert("⚠️ No se pudieron cargar registros"); return []; }
+}
+
+// 🔹 Guardar registros
+async function guardarRecojes(data){
+    try{
+        await fetch(URL_RECOGE,{
+            method:"PUT",
+            headers:{"Content-Type":"application/json","X-Master-Key":CONFIG.RECOGE.API_KEY},
+            body: JSON.stringify(data)
+        });
+        alert("✅ Cambios guardados");
+    } catch(err){ console.error(err); alert("❌ Error al guardar en servidor"); }
+}
+
+// 🔹 Descargar CSV
+// 🔹 Descargar CSV mensual hasta día seleccionado
+async function descargarCSVMensual() {
+    const registros = await obtenerRecojes();
+    const mes = document.getElementById("mesFiltro").value; // ej: "2025-10"
+    const dia = document.getElementById("diaFiltro").value;  // ej: "2025-10-15"
+
+    if (!mes || !dia) return alert("⚠️ Selecciona mes y día para descargar.");
+
+    // Filtrar registros desde inicio del mes hasta el día seleccionado
+    const registrosFiltrados = registros.filter(r => {
+        const fecha = r.fechaLlegada; // asumimos formato "YYYY-MM-DD"
+        return fecha >= `${mes}-01` && fecha <= dia;
+    });
+
+    if (!registrosFiltrados.length) return alert("⚠️ No hay registros para este rango.");
+
+    // Crear CSV
+    let csv = "SKU,Fecha Llegada,Fecha Recoje,Entregado Por,Recogido Por,Estado\n";
+    registrosFiltrados.forEach(r => {
+        csv += `${r.sku},${r.fechaLlegada},${r.fechaRecoje},${r.entregadoPor},${r.recogidoPor},${r.estado}\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte_${mes}_hasta_${dia.split('-')[2]}.csv`; // ej: reporte_2025-10_hasta_15.csv
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// 🔹 Mostrar historial
+async function mostrarHistorial(){
+    const contenedor = document.getElementById("contenedorHistorial");
+    const mes = document.getElementById("mesFiltro").value;
+    const dia = document.getElementById("diaFiltro").value;
+
+    contenedor.innerHTML="<p>Cargando...</p>";
+    let registros=await obtenerRecojes();
+
+    if(mes && mes!=="todos"){ registros = registros.filter(r=>r.fechaLlegada.startsWith(mes)); }
+    if(dia){ registros = registros.filter(r=>r.fechaLlegada===dia); }
+
+    registros.sort((a,b)=>new Date(b.fechaLlegada)-new Date(a.fechaLlegada));
+
+    if(!registros.length){ contenedor.innerHTML="<p>No hay registros para mostrar.</p>"; return; }
+
+    const tabla=document.createElement("table");
+    tabla.innerHTML=`<tr>
+        <th>SKU</th><th>Fecha llegada</th><th>Fecha recoje</th><th>Entregado por</th><th>Recogido por</th><th>Estado</th><th>Acciones</th>
+    </tr>`;
+    registros.forEach(r=>{
+        const fila=document.createElement("tr");
+        fila.innerHTML=`<td>${r.sku}</td><td>${r.fechaLlegada}</td><td>${r.fechaRecoje}</td><td>${r.entregadoPor}</td><td>${r.recogidoPor}</td><td>${r.estado}</td>
+        <td class="acciones">
+            <button class="btn-editar" data-id="${r.id}">✏️</button>
+            <button class="btn-eliminar" data-id="${r.id}">🗑️</button>
+        </td>`;
+        tabla.appendChild(fila);
+    });
+    contenedor.innerHTML=""; contenedor.appendChild(tabla);
+}
+
+// 🔹 Editar / eliminar global
+document.addEventListener("click", async e=>{
+    if(e.target.classList.contains("btn-eliminar")){
+        const id=e.target.dataset.id;
+        if(!confirm("¿Seguro que quieres eliminar este registro?")) return;
+        const registros=await obtenerRecojes();
+        const nuevos=registros.filter(r=>r.id!=id);
+        await guardarRecojes(nuevos);
+        mostrarHistorial();
+    }
+    if(e.target.classList.contains("btn-editar")){
+        const id=e.target.dataset.id;
+        const registros=await obtenerRecojes();
+        const r=registros.find(r=>r.id==id);
+        if(!r) return;
+        alert(`Modo edición activado para SKU: ${r.sku}`);
+    }
+});
+
+// 🔹 Filtros y descarga
+document.getElementById("mesFiltro")?.addEventListener("change", mostrarHistorial);
+document.getElementById("diaFiltro")?.addEventListener("change", mostrarHistorial);
+document.getElementById("btnDescargarHistorial")?.addEventListener("click", descargarCSVMensual);
+
+
+// 🔹 Cargar al inicio
+document.addEventListener("DOMContentLoaded", ()=>{
+    inicializarFiltros(); // setear mes/día actuales
+    mostrarHistorial();
+});
+</script>
+
+</body>
+</html>
