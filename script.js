@@ -11,7 +11,12 @@ const CONFIG = {
   BODEGUITA: {
     BIN_ID : "68e83994d0ea881f409bb2fe",
     API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy",
-  }
+  },
+  RECOGE: {
+    BIN_ID: "68f0782143b1c97be96a8e31", // bin nuevo para registros de recoje
+    API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy",
+}
+
 };
 
 const crearURL = (id) => `https://api.jsonbin.io/v3/b/${id}`;
@@ -433,3 +438,263 @@ document.addEventListener("DOMContentLoaded", () => {
   cargarInventario();
   cargarInventarioBodeguita();
 });
+// ======================================================
+// 🧾 MÓDULO: RECOJE (Gestión de artículos a recoger)
+// ======================================================
+
+// ===== 🔧 CONFIGURACIÓN Y CONSTANTES =====
+const { RECOGE } = CONFIG;
+const URL_RECOGE = crearURL(RECOGE.BIN_ID);
+
+// ======================================================
+// 🔹 FUNCIONES DE SERVIDOR (Cargar / Guardar JSONBin)
+// ======================================================
+
+/** Obtener todos los registros desde JSONBin */
+async function obtenerRecojes() {
+  try {
+    const res = await fetch(`${URL_RECOGE}/latest`, {
+      headers: { "X-Master-Key": RECOGE.API_KEY },
+    });
+    const json = await res.json();
+    return Array.isArray(json.record) ? json.record : [];
+  } catch (err) {
+    console.error("Error al cargar registros:", err);
+    mostrarToast("⚠️ No se pudieron cargar registros");
+    return [];
+  }
+}
+
+/** Guardar registros en JSONBin */
+async function guardarRecojes(data) {
+  try {
+    await fetch(URL_RECOGE, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": RECOGE.API_KEY,
+      },
+      body: JSON.stringify(data),
+    });
+    mostrarToast("✅ Registrado en el servidor");
+  } catch (err) {
+    console.error("Error al guardar registros:", err);
+    mostrarToast("❌ Error al guardar en servidor");
+  }
+}
+
+// ======================================================
+// 📋 FUNCIÓN PRINCIPAL: MOSTRAR REGISTROS EN TABLA
+// ======================================================
+
+// ===== MOSTRAR RECOJES =====
+async function mostrarRecojes() {
+  const filtroEstado = document.getElementById("filtroEstado").value;
+  const contenedor = document.getElementById("contenedorRecojes");
+  if (!contenedor) return;
+
+  contenedor.innerHTML = "<p>Cargando...</p>";
+
+  // 🔹 1. Obtener registros y ordenar por fecha más reciente
+  const registros = (await obtenerRecojes()).sort(
+    (a, b) => new Date(b.fechaLlegada) - new Date(a.fechaLlegada)
+  );
+
+  // 🔹 2. Filtrar por estado si aplica
+  let registrosFiltrados =
+    filtroEstado === "todos"
+      ? registros
+      : registros.filter(r => r.estado.toLowerCase() === filtroEstado);
+
+  // 🔹 3. Limitar a solo los registros de hoy y ayer
+  const hoy = new Date();
+  const ayer = new Date();
+  ayer.setDate(hoy.getDate() - 1);
+
+  const esHoyOAyer = (fechaStr) => {
+    const fecha = new Date(fechaStr);
+    return (
+      fecha.toDateString() === hoy.toDateString() ||
+      fecha.toDateString() === ayer.toDateString()
+    );
+  };
+
+  registrosFiltrados = registrosFiltrados.filter(r => esHoyOAyer(r.fechaLlegada));
+
+  // ⚠️ 4. Verificar si hay registros después del filtrado
+  if (!registrosFiltrados.length) {
+    contenedor.innerHTML = "<p>No hay registros recientes (solo se muestran los de hoy y ayer).</p>";
+    return;
+  }
+
+  // 🔹 5. Agrupar por fecha de llegada
+  const grupos = registrosFiltrados.reduce((acc, r) => {
+    (acc[r.fechaLlegada] ||= []).push(r);
+    return acc;
+  }, {});
+
+  contenedor.innerHTML = "";
+
+  // 🔹 6. Crear tablas agrupadas por fecha
+  for (const [fecha, grupo] of Object.entries(grupos)) {
+    const titulo = document.createElement("h3");
+    titulo.textContent = `📅 ${fecha}`;
+    contenedor.appendChild(titulo);
+
+    const tabla = document.createElement("table");
+    tabla.innerHTML = `
+      <tr>
+        <th>SKU</th>
+        <th>Fecha llegada</th>
+        <th>Fecha recoje</th>
+        <th>Entregado por</th>
+        <th>Recogido por</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    `;
+
+    grupo.forEach(r => {
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td>${r.sku}</td>
+        <td>${r.fechaLlegada}</td>
+        <td>${r.fechaRecoje}</td>
+        <td>${r.entregadoPor}</td>
+        <td>${r.recogidoPor}</td>
+        <td>${r.estado}</td>
+        <td class="acciones">
+          <button class="btn-editar" data-id="${r.id}">✏️</button><br><br>
+          <button class="btn-eliminar" data-id="${r.id}">🗑️</button>
+        </td>
+      `;
+      tabla.appendChild(fila);
+    });
+
+    contenedor.appendChild(tabla);
+  }
+}
+
+// ======================================================
+// 🧩 FUNCIÓN: REGISTRAR NUEVO RECOJE
+// ======================================================
+
+async function registrarRecoje(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const sku = form.skuRecoje.value.trim();
+  const fechaLlegada = form.fechaLlegada.value.trim();
+  const fechaRecoje = form.fechaRecoje?.value.trim() || "Pendiente por recoger";
+  const entregadoPor = form.entregadoPor?.value.trim() || "Pendiente";
+  const recogidoPor = form.recogidoPor?.value.trim() || "Pendiente";
+
+  if (!sku || !fechaLlegada)
+    return mostrarToast("⚠️ Faltan datos obligatorios");
+
+  const nuevoRegistro = {
+    id: Date.now(),
+    sku,
+    fechaLlegada,
+    fechaRecoje,
+    entregadoPor,
+    recogidoPor,
+    estado:
+      fechaRecoje === "Pendiente por recoger" ? "Pendiente" : "Entregado",
+  };
+
+  try {
+    const registros = await obtenerRecojes();
+    registros.push(nuevoRegistro);
+    await guardarRecojes(registros);
+
+    mostrarToast("✅ Registro guardado correctamente");
+    form.reset();
+    mostrarRecojes();
+  } catch (error) {
+    console.error(error);
+    mostrarToast("❌ Error al guardar el registro");
+  }
+}
+
+// ======================================================
+// 🧱 EVENTOS Y ACCIONES (Editar / Eliminar / Cargar)
+// ======================================================
+
+/** Escucha los clics en los botones de acción */
+document.addEventListener("click", async e => {
+  // 🗑️ Eliminar registro
+  if (e.target.classList.contains("btn-eliminar")) {
+    const id = e.target.dataset.id;
+    if (!confirm("¿Seguro que quieres eliminar este registro?")) return;
+
+    const registros = await obtenerRecojes();
+    const nuevos = registros.filter(r => r.id != id);
+    await guardarRecojes(nuevos);
+    mostrarToast("🗑️ Registro eliminado");
+    mostrarRecojes();
+  }
+
+  // ✏️ Editar registro
+  if (e.target.classList.contains("btn-editar")) {
+    const id = e.target.dataset.id;
+    const registros = await obtenerRecojes();
+    const r = registros.find(r => r.id == id);
+    if (!r) return;
+
+    // Llenar formulario con datos del registro
+    document.getElementById("skuRecoje").value = r.sku;
+    document.getElementById("fechaLlegada").value = r.fechaLlegada;
+    document.getElementById("fechaRecoje").value = r.fechaRecoje;
+    document.getElementById("entregadoPor").value = r.entregadoPor;
+    document.getElementById("recogidoPor").value = r.recogidoPor;
+
+    // Marcar formulario en modo edición
+    const form = document.getElementById("formRecoje");
+    form.dataset.editando = id;
+    mostrarToast("✏️ Modo edición activado");
+  }
+});
+
+/** Inicializar el módulo al cargar */
+document.addEventListener("DOMContentLoaded", () => {
+  mostrarRecojes();
+  const formRecoje = document.getElementById("formRecoje");
+  formRecoje?.addEventListener("submit", registrarRecoje);
+  document.getElementById("filtroEstado")?.addEventListener("change", mostrarRecojes);
+});
+
+/**boton de historial completo  */
+document.getElementById("btnVerDetalles")?.addEventListener("click", () => {
+  // Redirigir a página de historial completo
+  window.location.href = "historial_recojes.html";
+});
+
+// ======================================================
+// 🧱 DESCARGAR REPORTE MENSUAL
+// ======================================================
+
+async function descargarReporteMensual() {
+  const registros = await obtenerRecojes();
+
+  if (!registros.length) {
+    return mostrarToast("⚠️ No hay registros para generar el reporte");
+  }
+
+  // 🔹 Crear CSV (ejemplo)
+  let csv = "SKU,Fecha Llegada,Fecha Recoje,Entregado Por,Recogido Por,Estado\n";
+  registros.forEach(r => {
+    csv += `${r.sku},${r.fechaLlegada},${r.fechaRecoje},${r.entregadoPor},${r.recogidoPor},${r.estado}\n`;
+  });
+
+  // 🔹 Descargar archivo
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `reporte_recojes_${new Date().toLocaleDateString()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  mostrarToast("✅ Reporte descargado");
+}
