@@ -409,3 +409,253 @@ body.gradiente .menu button::after {
   opacity: 1;
   transform: translateY(0);
 }
+/* Contenedor de tarjetas */
+.tarjetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Tarjeta individual */
+.tarjeta {
+  flex: 1 1 250px;
+  background: var(--card-bg);
+  color: var(--card-color);
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tarjeta:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+.tarjeta p {
+  margin: 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+/* Botón reporte */
+.btn-reporte {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.btn-reporte:hover {
+  background-color: #0056b3;
+}
+
+/* Temas dinámicos */
+body.claro {
+  --card-bg: #ffffff;
+  --card-color: #000000;
+  background-color: #f5f5f5;
+}
+
+body.oscuro {
+  --card-bg: #1e1e1e;
+  --card-color: #ffffff;
+  background-color: #121212;
+}
+
+body.gradiente {
+  --card-bg: linear-gradient(135deg, #ff8c00, #ff0080);
+  --card-color: #ffffff;
+  background: linear-gradient(135deg, #ff8c00, #ff0080);
+}
+
+/* Tablas modernas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  color: var(--card-color);
+}
+
+table th, table td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+table th {
+  background-color: var(--table-header-bg);
+  color: var(--table-header-color);
+}
+
+table tr:hover {
+  background-color: var(--table-hover-bg);
+  transition: background 0.2s;
+}
+
+/* Bordes redondeados en tabla (solo el contenedor) */
+table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Temas dinámicos para tablas */
+body.claro {
+  --table-header-bg: #e0e0e0;
+  --table-header-color: #000;
+  --table-hover-bg: #f2f2f2;
+}
+
+body.oscuro {
+  --table-header-bg: #2c2c2c;
+  --table-header-color: #fff;
+  --table-hover-bg: #3a3a3a;
+}
+
+body.gradiente {
+  --table-header-bg: rgba(255,255,255,0.2);
+  --table-header-color: #fff;
+  --table-hover-bg: rgba(255,255,255,0.1);
+}
+
+#contenedorRecojes {
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255,255,255,0.05);
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Ocultar barra en navegadores basados en WebKit (Chrome, Edge, Safari) */
+#contenedorRecojes::-webkit-scrollbar {
+  display: none;
+}
+
+#contenedorRecojes table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#contenedorRecojes th, #contenedorRecojes td {
+  padding: 8px;
+  border-bottom: 1px solid #555;
+  text-align: center;
+  color: #fff;
+}
+
+#contenedorRecojes th {
+  background: rgba(255,255,255,0.1);
+}
+
+.acciones button {
+  margin: 0 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1em;
+  transition: transform 0.2s;
+}
+
+/* Select básico */
+select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Temas */
+body.claro select {
+  background: rgba(255,255,255,0.9);
+  color: #111;
+  border: 1px solid #ccc;
+}
+body.claro select:focus {
+  box-shadow: 0 0 8px #007bff, 0 0 12px rgba(0,123,255,0.3);
+}
+
+body.oscuro select {
+  background: #222;
+  color: #fff;
+  border: 1px solid #333;
+}
+body.oscuro select:focus {
+  box-shadow: 0 0 10px #39f;
+}
+
+body.gradiente select {
+  background: rgba(255,255,255,0.2);
+  color: #505050;
+  border: 1px solid #fff;
+}
+body.gradiente select:focus {
+  box-shadow: 0 0 10px #ff0080;
+}
+
+/* Fecha */
+input[type="date"] {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Temas */
+body.claro input[type="date"] {
+  background: rgba(255,255,255,0.9);
+  color: #111;
+  border: 1px solid #ccc;
+}
+body.claro input[type="date"]:focus {
+  box-shadow: 0 0 8px #007bff, 0 0 12px rgba(0,123,255,0.3);
+}
+
+body.oscuro input[type="date"] {
+  background: #222;
+  color: #fff;
+  border: 1px solid #333;
+}
+body.oscuro input[type="date"]:focus {
+  box-shadow: 0 0 10px #39f;
+}
+
+body.gradiente input[type="date"] {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  border: 1px solid #fff;
+}
+body.gradiente input[type="date"]:focus {
+  box-shadow: 0 0 10px #ff0080;
+}
+
+.vista-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* espacio entre cada label + select */
+  max-width: 200px; /* opcional para que no quede muy ancho */
+}
+
+.vista-filtro label {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.vista-filtro select {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+}
