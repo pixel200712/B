@@ -18,6 +18,7 @@
   <a href="#" onclick="mostrarVista('registro')">📋 Registro</a>
   <a href="#" onclick="mostrarVista('historial')">📑 Historial</a>
   <a href="#" onclick="mostrarVista('inventario')">📦 Inventario (SKU)</a>
+  <a href="#" onclick="mostrarVista('recoje')">🛒 Artículos para recoger</a>
   <button onclick="cambiarTema()" id="botonTema">☀️ Cambiar tema</button>
 </div>
 
@@ -86,6 +87,42 @@
   <div id="resultadoInventario" class="resultado-lista"></div>
 </div>
 
+<!-- ===== VISTA RECOGE ===== -->
+<div id="vista-recoje" class="vista">
+  <h1>🛒 Artículos para recoger</h1>
+
+  <!-- Formulario para registrar un nuevo artículo -->
+  <form id="formRecoje">
+    <input type="text" id="skuRecoje" placeholder="SKU del producto" required>
+    <label>fecha de llegada </label>
+    <input type="date" id="fechaLlegada" required>
+    <input type="text" id="entregadoPor" placeholder="Entregado por" >
+    
+    <!-- Campo opcional: solo se llenará cuando el cliente recoja -->
+    <input type="date" id="fechaRecoje" placeholder="Fecha de recoje (opcional)">
+    <input type="text" id="recogidoPor" placeholder="Recogido por (opcional)">
+    
+    <button type="submit">Registrar artículo</button>
+  </form><br>
+
+<div class="vista-filtro">
+
+  <label for="filtroEstado">Filtrar por estado:</label>
+  <select id="filtroEstado">
+    <option value="todos">Todos</option>
+    <option value="pendiente">Pendiente</option>
+    <option value="entregado">Entregado</option>
+  </select>
+</div>
+
+  <h3>📅 Registros por día</h3>
+  <div id="contenedorRecojes"></div>
+
+  <!-- Botón para descargar reporte -->
+  <button onclick="descargarReporteMensual()" class="btn-reporte">📤 Descargar reporte mensual</button>
+  <button id="btnVerDetalles">🗂 Ver historial completo</button>
+
+</div>
 
 </div>
 
