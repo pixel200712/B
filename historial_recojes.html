@@ -45,11 +45,19 @@
 <label for="diaFiltro">Selecciona día:</label>
 <input type="date" id="diaFiltro"><br><br>
 
+<button id="btnVolver">⬅️ Volver</button>
+
+
 <button id="btnDescargarHistorial">📤 Descargar historial</button><br><br>
 
 <div id="contenedorHistorial"><p>Cargando registros...</p></div>
 
 <script>
+    //boton de volver a la pagina anterior 
+    document.querySelector("button:first-of-type").addEventListener("click", () => {
+  window.location.href = "Index.html"; // o la ruta que uses
+});
+
 // ===== CONFIG =====
 const CONFIG = {
   RECOGE: {
