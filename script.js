@@ -1,6 +1,6 @@
 // ===== CONFIGURACIÓN GLOBAL =====
 const CONFIG = {
-  SUMINISTROS: {
+  SUMINISTROS: {   //sonlos que se llevan y se guardan en el historial 
     BIN_ID: "68e5b7b6ae596e708f09e533",
     API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy",
   },
@@ -12,6 +12,10 @@ const CONFIG = {
     BIN_ID : "68e83994d0ea881f409bb2fe",
     API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy",
   },
+  SUMINISTROREGISTRADO: {   //es para los check boxes 
+      BIN_ID: "68faf18143b1c97be97c1361",
+      API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy",
+  },
   RECOGE: {
     BIN_ID: "68f0782143b1c97be96a8e31", // bin nuevo para registros de recoje
     API_KEY: "$2a$10$tl9rjwJzegQiXiU0QzSbm.A0IjnWDmhKKCLiFDciLB3bdhowrXdZy",
@@ -20,7 +24,7 @@ const CONFIG = {
 };
 
 const crearURL = (id) => `https://api.jsonbin.io/v3/b/${id}`;
-const { SUMINISTROS, INVENTARIO, BODEGUITA } = CONFIG;
+const { SUMINISTROS, SUMINISTROREGISTRADO, INVENTARIO, BODEGUITA } = CONFIG;
 
 // ===== FUNCIONES GENERALES =====
 const fetchJSONBin = async (url, key, method = "GET", data = null) => {
@@ -378,6 +382,7 @@ function actualizarCheckboxes() {
 let inventarioBodeguita = [];
 const URL_BODEGUITA = crearURL(BODEGUITA.BIN_ID);
 
+// 🔹 Cargar inventario
 async function cargarInventarioBodeguita() {
   try {
     const data = await fetchJSONBin(`${URL_BODEGUITA}/latest`, BODEGUITA.API_KEY);
@@ -390,16 +395,18 @@ async function cargarInventarioBodeguita() {
   mostrarInventarioBodeguita();
 }
 
+// 🔹 Guardar inventario
 async function guardarInventarioBodeguita() {
   try {
     await fetchJSONBin(URL_BODEGUITA, BODEGUITA.API_KEY, "PUT", inventarioBodeguita);
-    console.log("✅ Inventario Bodeguita actualizado");
+    mostrarToast("✅ Inventario Bodeguita actualizado en línea");
   } catch {
     localStorage.setItem(BODEGUITA.BIN_ID, JSON.stringify(inventarioBodeguita));
-    mostrarToast("⚠️ No se pudo guardar Bodeguita en línea, se guardó localmente");
+    mostrarToast("⚠️ No se pudo guardar en línea, se guardó localmente");
   }
 }
 
+// 🔹 Mostrar inventario
 function mostrarInventarioBodeguita(filtro = "") {
   const contenedor = document.getElementById("resultadoInventarioBodeguita");
   if (!contenedor) return;
@@ -411,25 +418,164 @@ function mostrarInventarioBodeguita(filtro = "") {
     (p.sku && p.sku.toLowerCase().includes(filtroLower))
   );
 
+  if (filtrados.length === 0) {
+    contenedor.innerHTML = `<p style="text-align:center;color:gray;">Sin resultados 😔</p>`;
+    return;
+  }
+
   filtrados.forEach(p => {
     const card = document.createElement("div");
     card.className = "card-inventario";
     card.innerHTML = `
-      <img src="${p.imagen || 'img/default.png'}" alt="${p.nombre}">
       <h4>${p.nombre}</h4>
       <p><strong>SKU:</strong> ${p.sku}</p>
       <p><strong>Cantidad:</strong> ${p.cantidad}</p>
       <p><strong>Ubicación:</strong> ${p.ubicacion}</p>
-      <small>🕒 ${p.fecha}</small>
+      <small>📅 ${p.fecha}</small>
     `;
     contenedor.appendChild(card);
   });
 }
 
-// Búsqueda Bodeguita
+function mostrarInventario(filtro = "") {
+  const tabla = document.getElementById("resultadoInventario").querySelector("tbody");
+  if (!tabla) return;
+  tabla.innerHTML = "";
+
+  const filtroLower = filtro.toLowerCase();
+  const filtrados = inventarioBodeguita.filter(p =>
+    (p.nombre && p.nombre.toLowerCase().includes(filtroLower)) ||
+    (p.sku && p.sku.toLowerCase().includes(filtroLower))
+  );
+
+  if (filtrados.length === 0) {
+    tabla.innerHTML = `<tr><td colspan="5" style="text-align:center;color:gray;">Sin resultados 😔</td></tr>`;
+    return;
+  }
+
+  filtrados.forEach(p => {
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td>${p.sku}</td>
+      <td>${p.nombre}</td>
+      <td>${p.cantidad}</td>
+      <td>${p.ubicacion}</td>
+      <td>${p.fecha}</td>
+    `;
+    tabla.appendChild(fila);
+  });
+}
+
+// Buscador en la lista principal
+const busquedaInventario = document.getElementById("busquedaInventario");
+if (busquedaInventario) busquedaInventario.addEventListener("input", e => {
+  mostrarInventario(e.target.value);
+});
+
+// Mostrar inventario al cargar la página
+document.addEventListener("DOMContentLoaded", () => {
+  cargarInventarioBodeguita().then(() => mostrarInventario());
+});
+
+// 🔹 Búsqueda en vivo
 const busquedaBInput = document.getElementById("busquedaInventarioBodeguita");
 if (busquedaBInput) busquedaBInput.addEventListener("input", e => {
   mostrarInventarioBodeguita(e.target.value);
+});
+
+// ===== FORMULARIO MANUAL =====
+// Muestra el formulario manual y oculta el escáner
+function mostrarManual() {
+  document.getElementById("formManual").style.display = "block";
+  document.getElementById("contenedorEscaner").style.display = "none";
+}
+
+// Listener para registrar producto manual
+document.getElementById("formAgregar")?.addEventListener("submit", e => {
+  e.preventDefault();
+  const skuVal = document.getElementById("sku").value.trim();
+  const nombreVal = document.getElementById("nombre").value.trim();
+  const cantidadVal = parseInt(document.getElementById("cantidad").value);
+
+  if (!skuVal || !nombreVal || cantidadVal <= 0) {
+    mostrarToast("⚠️ Completa todos los campos correctamente");
+    return;
+  }
+
+  const existe = inventarioBodeguita.find(p => p.sku === skuVal);
+  if (existe) {
+    existe.cantidad += cantidadVal;
+    mostrarToast(`📦 Cantidad actualizada del producto "${existe.nombre}"`);
+  } else {
+    const nuevo = {
+      sku: skuVal,
+      nombre: nombreVal,
+      cantidad: cantidadVal,
+      ubicacion: "Bodeguita",
+      fecha: new Date().toISOString().split("T")[0]
+    };
+    inventarioBodeguita.push(nuevo);
+    mostrarToast(`🆕 Producto "${nombreVal}" agregado al inventario`);
+  }
+
+  guardarInventarioBodeguita();
+  mostrarInventarioBodeguita();
+  e.target.reset();
+});
+
+// ===== ESCÁNER QR =====
+function mostrarEscaner() {
+  document.getElementById("contenedorEscaner").style.display = "block";
+  document.getElementById("formManual").style.display = "none";
+
+  const html5QrCode = new Html5Qrcode("qr-reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      document.getElementById("qr-result").innerText = `✅ SKU detectado: ${decodedText}`;
+      agregarProductoEscaneado(decodedText);
+    },
+    (errorMessage) => console.warn("Error:", errorMessage)
+  );
+
+  window.html5QrCode = html5QrCode;
+}
+
+function cerrarEscaner() {
+  if (window.html5QrCode) window.html5QrCode.stop().catch(console.warn);
+  document.getElementById("contenedorEscaner").style.display = "none";
+  document.getElementById("qr-result").innerText = "📱 Esperando escaneo...";
+}
+
+// ===== REGISTRO DE PRODUCTO ESCANEADO =====
+function agregarProductoEscaneado(sku) {
+  const existe = inventarioBodeguita.find(p => p.sku === sku);
+  if (existe) {
+    existe.cantidad++;
+    mostrarToast("📦 Cantidad actualizada del producto");
+  } else {
+    const descripcion = prompt("📝 Ingresa la descripción del artículo:");
+    const cantidad = parseInt(prompt("🔢 Ingresa la cantidad:"), 10) || 1;
+
+    const nuevo = {
+      sku,
+      nombre: descripcion || "Sin descripción",
+      cantidad,
+      ubicacion: "Bodeguita",
+      fecha: new Date().toISOString().split("T")[0]
+    };
+    inventarioBodeguita.push(nuevo);
+    mostrarToast("🆕 Producto agregado al inventario");
+  }
+
+  guardarInventarioBodeguita();
+  mostrarInventarioBodeguita();
+}
+
+// ===== INICIO =====
+document.addEventListener("DOMContentLoaded", () => {
+  cargarInventarioBodeguita();
 });
 
 // ===== INICIO =====
