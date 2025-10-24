@@ -60,6 +60,31 @@
 <div id="vista-inventario" class="vista">
   <h1>📦 Inventario de Bodega</h1>
 
+  <!-- ====== NUEVA SECCIÓN PARA REGISTRAR PRODUCTOS ====== -->
+<h3>➕ Registrar producto</h3>
+
+<div class="modo-registro">
+  <button type="button" onclick="mostrarEscaner()">📷 Escanear código</button><br><br>
+  <button type="button" onclick="mostrarManual()">✍️ Agregar manualmente</button><br><br>
+</div>
+
+<!-- Escáner con cámara -->
+<div id="contenedorEscaner" style="display:none; margin-top:10px;">
+  <div id="qr-reader" style="width:300px; margin:auto;"></div>
+  <p id="qr-result" style="text-align:center;">📱 Esperando escaneo...</p>
+  <button type="button" onclick="cerrarEscaner()">❌ Cerrar escáner</button><br><br>
+</div>
+
+<!-- Formulario manual -->
+<div id="formManual" style="display:none; margin-top:15px;">
+  <form id="formAgregar">
+    <input id="sku" placeholder="Código SKU" required><br>
+    <input id="nombre" placeholder="Nombre del producto" required><br>
+    <input id="cantidad" type="number" placeholder="Cantidad" min="1" required><br>
+    <button type="submit">Agregar producto</button><br><br>
+  </form>
+</div>
+
   <!-- Buscador -->
   <div class="buscador">
     <input type="text" id="buscarProducto" placeholder="🔍 Buscar por nombre o SKU...">
@@ -84,7 +109,21 @@
   <!-- Lista del inventario -->
   <h3>📋 Inventario actual</h3>
   <input type="text" id="busquedaInventario" placeholder="🔍 Buscar en inventario...">
-  <div id="resultadoInventario" class="resultado-lista"></div>
+  <table id="resultadoInventario" class="inventario-tabla">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Nombre</th>
+        <th>Cantidad</th>
+        <th>Ubicación</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Aquí JS llenará las filas -->
+    </tbody>
+  </table>
+
 </div>
 
 <!-- ===== VISTA RECOGE ===== -->
@@ -119,7 +158,7 @@
   <div id="contenedorRecojes"></div>
 
   <!-- Botón para descargar reporte -->
-  <button onclick="descargarReporteMensual()" class="btn-reporte">📤 Descargar reporte mensual</button>
+  <button onclick="descargarReporteMensual()" class="btn-reporte">📤 Descargar reporte mensual</button><br><br>
   <button id="btnVerDetalles">🗂 Ver historial completo</button>
 
 </div>
@@ -129,6 +168,7 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script src="script.js"></script>
 </body>
 </html>
