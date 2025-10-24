@@ -341,6 +341,7 @@ body.gradiente .menu button::after {
 /* ---- Vistas ---- */
 .vista {
   display: none;
+  overflow-x: auto; /* permite que la tabla se vea completa sin salirse */
 }
 .vista.activa {
   display: block;
